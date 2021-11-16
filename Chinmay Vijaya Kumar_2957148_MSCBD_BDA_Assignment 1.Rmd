@@ -1,0 +1,214 @@
+---
+title: "Chinmay Vijaya Kumar_2957148_MSCBD_BDA_Assignment 1"
+author: "Chinmay Vijaya Kumar_2957148"
+date: "03/11/2019"
+output:
+  pdf_document: default
+  html_document: default
+df_print: paged
+word_document: default
+---
+
+<!--Initial Setup-->
+```{r setup,include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,message = TRUE,warning = TRUE)
+```
+
+<!--Library Setup-->
+```{r library,include=FALSE}
+library(ggplot2)
+library(datasets)
+library(MASS)
+library(dplyr)
+library(stringr)
+```
+
+<!--Reading the Diamond Dataset (.csv file) into the R Markdown-->
+```{r reading,include=FALSE}
+setwd(getwd())
+diamonds.dataset <- read.csv("DiamondDataComplete.csv")
+```
+
+# Summary of the Diamond Dataset Before Cleaning
+
+```{r summary,echo=FALSE}
+head(diamonds.dataset)
+str(diamonds.dataset)
+summary(diamonds.dataset)
+nrow(diamonds.dataset)
+```
+The above data shows summary of the raw Diamond dataset (Structure, Summary and Row Count)
+
+## Task 1
+# Cleaning the Diamonds Data Set (Removing NA's and Outliers)
+```{r cleaning,echo=FALSE}
+# Carat
+# If the carat value is greator than 5.01 then divide the value by 10 to make it less than 5.01
+for (i in 1:nrow(diamonds.dataset)) {
+  if (diamonds.dataset$carat[i] > 5.01)
+    diamonds.dataset$carat[i] <- diamonds.dataset$carat[i] / 10
+}
+# Replace all the zero values if present to the mean value
+diamonds.dataset$carat <- replace(diamonds.dataset$carat, diamonds.dataset$carat == 0, mean(diamonds.dataset$carat))
+# Cut
+# Change all Ideals to Premium
+diamonds.dataset$cut <- replace(diamonds.dataset$cut, diamonds.dataset$cut == "Ideal", "Premium")
+#Clarity refactor
+diamonds.dataset$clarity <- factor(diamonds.dataset$clarity, levels = c("I1","SI2","SI1","VS2","VS1","VVS2","VVS1","IF"))
+# Change all Very Geod to Very Good
+diamonds.dataset$cut <- replace(diamonds.dataset$cut, diamonds.dataset$cut == "Very Geod", "Very Good")
+# Factorize the Labels 
+diamonds.dataset$cut <- factor(diamonds.dataset$cut, levels = c("Fair", "Good", "Very Good", "Premium"))
+# Table
+# Change all NA's in Table to the mean value
+diamonds.dataset$table <- replace(diamonds.dataset$table, is.na(diamonds.dataset$table), mean(diamonds.dataset$table[!is.na(diamonds.dataset$table)]))
+# Remove all the NA values from the dataset (Depth, Price, X, Y, Z)
+diamonds.dataset <- diamonds.dataset[complete.cases(diamonds.dataset),]
+# Replace all zero values of x with mean of x
+diamonds.dataset$x <- replace(diamonds.dataset$x, diamonds.dataset$x == 0, mean(diamonds.dataset$x))
+# Replace all zero values of y with mean of y
+diamonds.dataset$y <- replace(diamonds.dataset$y, diamonds.dataset$y == 0, mean(diamonds.dataset$y))
+# Replace all zero values of z with mean of z
+diamonds.dataset$z <- replace(diamonds.dataset$z, diamonds.dataset$z == 0, mean(diamonds.dataset$z))
+summary(diamonds.dataset)
+nrow(diamonds.dataset)
+```
+The above data shows summary of the cleaned Diamond dataset.
+
+Every data set has to be cleaned before using it i.e. removing incomplete rows, columns or any insignificant columns. The raw Diamonds dataset had 50000 observations, after removal of NA's and Outliers the row count reduced to 48313 observations. 1687 observations which were incomplete were removed.  
+
+<!--Prepare 4 Plots: Pie Chart, Bar Chart, Histogram, Scatter Plot-->
+## Task 2
+# 4 Plots: Pie Chart, Bar Chart, Histogram, Scatter Plot
+
+# Pie Chart
+<!--Pie chart of color-->
+```{r piechart,echo=FALSE}
+c <- table(diamonds.dataset$color)
+c <- as.data.frame(c)
+pieperc <- round(100*c$Freq/sum(c$Freq), 1)
+pieperc <- paste(c$Var1, ",", pieperc, "%")
+pie(c$Freq, labels = pieperc, clockwise = TRUE, border = "white", radius = 0.7, cex = 0.8, main = "Diamond by Color Pie Chart", col = rainbow(length(c$Freq)))
+legend("topright", legend = c$Var1, cex = 0.8, bty = "n", fill = rainbow(length(c$Freq)))
+```
+
+# Bar Chart
+<!--Bar chart for cut-->
+```{r barchart,echo=FALSE}
+d <- table(diamonds.dataset$cut)
+d <- as.data.frame(d)
+barplot(d$Freq, names.arg = d$Var1, xlab = "CUT", ylab = "FREQUENCY", col = rainbow(length(d$Freq)), main = "Cut Frequency Chart", border = "white")
+```
+
+# Histogram
+<!--Histogram for table-->
+```{r histogram,echo=FALSE}
+hist(diamonds.dataset$table, main = "Histogram of Top width of diamond", xlab = "Top width of diamond", col = "darkgrey", border = "white")
+```
+
+# Scatter Plot
+<!--Scatter plot for Carat vs Depth-->
+```{r scatterplot,echo=FALSE}
+plot(x = diamonds.dataset$depth, y = diamonds.dataset$carat, xlab = "Depth", ylab = "Carat", main = "Carat vs Depth plot")
+abline(lm(diamonds.dataset$carat ~ diamonds.dataset$depth), col ="red")
+```
+
+The distribution for the all the above graphs is positively skewed. This means lesser plots are at the larger numeric value. The mean typically gets pulled toward the tail, and is greater than the median.
+
+## Task 3
+# Analysis on the Price Variable
+
+# Price Histogram
+<!--Histogram of Price with mean, median and variance values-->
+```{r pricehistogram,echo=FALSE}
+hist(diamonds.dataset$price, main = "Histogram of Price of Diamond", xlab = "Price", col = "red", border = "white")
+abline(v = mean(diamonds.dataset$price), col = "blue", lwd = 2)
+abline(v = median(diamonds.dataset$price), col = "green", lwd = 2)
+var(diamonds.dataset$price)
+```
+The Histogram for the price depicts that the frequency reduces as the price increases. The mean line is shown by the blue line. The median is shown by the yellow line. Variance is a huge value equaling 15979107 which cannot be displayed on the graph.
+
+# Group Diamond by Price range (Low, Medium, High)
+<!--Price range grouped by low, medium, high-->
+```{r pricerange,echo=FALSE}
+diamonds.dataset$range[diamonds.dataset$price < 19500] <- "High"
+diamonds.dataset$range[diamonds.dataset$price < 13000] <- "Medium"
+diamonds.dataset$range[diamonds.dataset$price < 6500] <- "Low"
+diamonds.dataset$range <- factor(diamonds.dataset$range, c("High", "Medium", "Low"))
+diamonds.dataset %>% group_by(range) %>% summarise(count=n(), mean = mean(price), median = median(price), var = var(price), min = min(price), max = max(price), sd = sd(price))
+```
+A new column range has been added into the table and factorized. Display the summary which includes mean, median, standard deviation, variance, minimum and maximum.
+
+# Explore prices for different cut types using Boxplot
+<!--Boxplot depicting the price for different cut types-->
+```{r boxplot,echo=FALSE}
+boxplot(diamonds.dataset$price[diamonds.dataset$cut == "Fair"],diamonds.dataset$price[diamonds.dataset$cut == "Premium"],diamonds.dataset$price[diamonds.dataset$cut == "Very Good"],diamonds.dataset$price[diamonds.dataset$cut == "Good"], xlab ="Cut Type", ylab = "Price", col=c("red","blue","yellow","green"), main = "Boxplot depicting Price for different diamond Cuts")
+legend("center", legend = unique(diamonds.dataset$cut), cex = 0.8, bty = "n", fill = c("red","blue","yellow","green"))
+```
+Boxplot displays the different Prices for the 4 Cut types Fair, Premium, Very Good and Good.
+
+# Correlation between all attributes with Price
+<!--Correlation of all numeric variables with Price-->
+```{r pricecorr,echo=FALSE}
+cor(diamonds.dataset$price,diamonds.dataset[,c("carat","table","x","y","z","depth")])
+plot(x = diamonds.dataset$price, y = diamonds.dataset$carat, xlab = "Price", ylab = "Carat", main = "Carat vs Price", col = "cyan")
+abline(lm(diamonds.dataset$carat ~ diamonds.dataset$price), col ="red")
+```
+The highest correlation for depth is with carat, x and y, highest being x. Plot for carat vs price is as shown by the graph above with the regression line.
+
+## Task 4
+# Frequencies of Diamonds for various cuts and clarity
+```{r cutsclarityfreq,echo=FALSE}
+# List frequency for Cuts
+table(diamonds.dataset$cut)
+# List frequency for clarity
+table(diamonds.dataset$clarity)
+```
+
+# 2 Scatter plots, color the diamonds price by clarity and cuts.
+```{r scatterplot_1,echo=FALSE}
+plot(diamonds.dataset$price,diamonds.dataset$x,col=diamonds.dataset$cut,xlab = "Price",ylab = "Length of Diamond",main="Price vs X")
+legend("bottomright", legend = unique(diamonds.dataset$cut), cex = 0.8, bty = "n", fill = unique(diamonds.dataset$cut))
+```
+Color code for Diamonds price by Cut
+
+```{r scatterplot_2,echo=FALSE}
+plot(diamonds.dataset$price,diamonds.dataset$depth,col=diamonds.dataset$clarity,xlab = "Price",ylab = "Depth of Diamond",main="Price vs Depth")
+legend("topright", legend = unique(diamonds.dataset$clarity), cex = 0.8, bty = "n", fill = unique(diamonds.dataset$clarity))
+```
+Color code for Diamonds price by Clarity
+
+## Task 5
+# Compute Volume variable from x, y, z
+```{r volume,echo=FALSE}
+diamonds.dataset <- mutate(diamonds.dataset, volume = x*y*z)
+diamonds.dataset$volume <- as.double(diamonds.dataset$volume)
+summary(diamonds.dataset)
+```
+
+# Price vs Volume
+```{r pricevsvol,echo=FALSE}
+plot(diamonds.dataset$volume,diamonds.dataset$price,col="green",xlab = "Volume of Diamond",ylab = "Price",main="Price vs Volume")
+abline(lm(diamonds.dataset$price ~ diamonds.dataset$volume), col ="black")
+```
+There is an exponential increase in Price with the increase in the volume of the diamond. The regression line shows a good correlation between price and volume.
+
+# Carat vs Volume
+```{r caratvsvol,echo=FALSE}
+plot(diamonds.dataset$volume,diamonds.dataset$carat,col="orange",xlab = "Volume of Diamond",ylab = "Carat",main="Carat vs Volume")
+abline(lm(diamonds.dataset$carat ~ diamonds.dataset$volume), col ="black")
+```
+There is a linear progression in Carat with the increase in the volume of the diamond. The regression line shows a good correlation between carat and volume.
+
+# Relationship between Table and Depth
+```{r tablevsdepth,echo=FALSE}
+plot(diamonds.dataset$depth,diamonds.dataset$table,col="purple",xlab = "Depth",ylab = "Table",main="Table vs Depth")
+abline(lm(diamonds.dataset$table ~ diamonds.dataset$depth), col ="black")
+```
+There is a negative correlation between Table and Depth close to zero. They are not correlated according to the graph.
+
+# Correlation between table and all other numeric columns
+```{r tablecorr,echo=FALSE}
+cor(diamonds.dataset$table,diamonds.dataset[,c("carat","price","x","y","z","depth","volume")])
+```
+Table is least correlated with each of the numeric values in the dataset. It has a negative and least correlation with depth. It has a positive correlation and least correlated with all the other variables which is close to zero.
